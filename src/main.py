@@ -30,12 +30,11 @@ LOG_PATH = Path(PATH, "./data/log/")
 import ray
 import random
 from tqdm.auto import tqdm
-from guided_local_search import ray_guided_local_search
 
 
 def benchmarks(tag, seed=None):
     pop_init = ['best']
-    max_iter = [100000]
+    max_iter = [1000]
     pop_size = [100]
     mem_size = [10]
     mem_consider = [0.9]
@@ -44,8 +43,9 @@ def benchmarks(tag, seed=None):
     bw_min = [0.1]
     bw_max = [0.7]
     sigma = [0.03]
-    k = [10] # list(range(2,11))
-    lambda_ = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    k = list(range(2,11))
+    # lambda_ = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    lambda_ = (np.round(np.array(list(range(101))) * 0.01, 4)).tolist()
     port_n = [1]
     lower = [0.01]
     upper = [1]
@@ -69,7 +69,7 @@ def benchmarks(tag, seed=None):
 
 def main():
     for i in tqdm(range(100)):
-        benchmarks('varying_lambda', None)
+        benchmarks('problem_solving', None)
 
 if __name__ == "__main__":
     main()

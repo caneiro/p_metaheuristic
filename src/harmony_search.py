@@ -123,7 +123,7 @@ def portfolio_risk(X, Z, cor_mx, r_std):
     for r in range(X.shape[0]):
         z1 = np.where(Z[r]==1)[0]
         i, j = list(zip(*list(combinations(z1, 2))))
-        risk[r] = np.sum(cor_mx[i, j] * X[r, i] * X[r, j]) # * r_std[list(i)] * r_std[list(j)]
+        risk[r] = np.sum(cor_mx[i, j] * X[r, i] * X[r, j]) # * r_std[list(i)] * r_std[list(j)])
     return np.round(risk, 6)
 
 def portfolio_return(X, Z, r_mean):
@@ -272,7 +272,6 @@ def harmony_search(parameters):
                 improve = True if cost_actual > cost_worst else False
                 
             if improve:
-                # print('Improve')
                 X[h_worst] = x
                 Z[h_worst] = z
                 C[h_worst] = cost_actual
@@ -286,11 +285,7 @@ def harmony_search(parameters):
         return_best = Return[h_best]
         cost_best = C[h_best]
             
-        # # print(improve, cost_best)
-        # if p_count == 1:
-        #     p_count = 0
-        # print('{:0>3d} | Q {:.0f} | par {:.3f} | bw {:.3f} | move {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f}' \
-            # .format(i, Z[h_best].sum(), par, bw, move, cost_best, risk_best, return_best))
+
         
         # Log
         if i == 1 or i == max_iter-1:
@@ -317,6 +312,11 @@ def harmony_search(parameters):
                 l_X.append(X[h_best])
                 l_Z.append(Z[h_best])
                 l_Q.append(Z[h_best].sum())
+
+                if DEBUG:
+                    print('{:0>3d} | Q {:.0f} | par {:.3f} | bw {:.3f} | move {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f}' \
+                        .format(i, Z[h_best].sum(), par, bw, move, cost_best, risk_best, return_best))
+
         log_count += 1
 
 
@@ -372,7 +372,7 @@ def main():
     bw_max = 0.7
     sigma = 0.03
     k = 10
-    lambda_ = 0.5
+    lambda_ = 0.9
     port_n = 1
     lower = 0.01
     upper = 1
@@ -427,4 +427,5 @@ def benchmarks(tag, seed=None):
 #     ray.shutdown()
 
 if __name__ == "__main__":
+    DEBUG = True
     main()
