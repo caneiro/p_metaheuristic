@@ -160,6 +160,7 @@ def harmony_search(parameters):
     seed = parameters[15]
     tag = parameters[16]
     pop_init = parameters[17]
+    local_search = parameters[18]
 
     l_iter = []
     l_cost = []
@@ -240,14 +241,59 @@ def harmony_search(parameters):
                 x[a] = lower
                 z[a] = 1
 
-        # Aplica o ajuste do Pitch para as variáveis oriundas da memória    
-        for a in np.where(m==1)[0]:
-            if np.random.uniform() <= par:
-                x[a] = x[a] + move
-                z[a] = 1
-
         # Normaliza a solução para atender ao critério de restrição
         x = normalize(x, z, lower)
+
+        if local_search is not None:
+            x_actual = x.copy()
+            z_actual = z.copy()
+
+            x_best = x_actual.copy()
+            z_best = z_actual.copy()
+
+            for l in range(local_search):
+
+                risk_best = portfolio_risk(x_best.reshape(1,-1), z_best.reshape(1,-1), cor_mx, r_std)
+                return_best = portfolio_return(x_best.reshape(1,-1), z_best.reshape(1,-1), r_mean)
+                cost_best = cost_function(risk_best, return_best, lambda_)
+
+                for a in np.where(z_actual==1)[0]:
+                    if np.random.uniform() <= par:
+                        op = np.random.choice([0,1])
+                        if op == 0:
+                            local_move = np.random.normal(scale=sigma) * bw
+                            x_actual[a] = x_actual[a] + local_move
+                        elif op == 1:
+                            h_best = np.argmin(C) if type=='min' else np.argmax(C)
+                            h_worst = np.argmax(C) if type=='min' else np.argmin(C)
+                            local_move = bw * (X[h_best, a] - X[h_worst, a])
+                            x_actual[a] = x_actual[a] + local_move
+                        if x_actual[a] < lower:
+                            x_actual[a] = lower
+
+                x_actual = normalize(x_actual, z_actual, lower)
+
+                risk_actual = portfolio_risk(x_actual.reshape(1,-1), z_actual.reshape(1,-1), cor_mx, r_std)
+                return_actual = portfolio_return(x_actual.reshape(1,-1), z_actual.reshape(1,-1), r_mean)
+                cost_actual = cost_function(risk_actual, return_actual, lambda_)                
+
+                if cost_actual[0] < cost_best[0]:
+                    # print(l, 'improve')
+                    x_best = x_actual.copy()                    
+                    z_best = z_actual.copy()
+
+            x = x_best.copy()
+            z = z_best.copy()
+
+        else:
+            # Aplica o ajuste do Pitch para as variáveis oriundas da memória    
+            for a in np.where(m==1)[0]:
+                if np.random.uniform() <= par:
+                    x[a] = x[a] + move
+                    z[a] = 1
+
+            # Normaliza a solução para atender ao critério de restrição
+            x = normalize(x, z, lower)
 
         # print(bad_pop)
         if check_constraints(x, z, lower, upper, k): ##### Melhorar!!! - testes repetidos
@@ -347,6 +393,7 @@ def harmony_search(parameters):
     log['k'] = k
     log['seed'] = seed
     log['tag'] = tag
+    log['local_search'] = local_search
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     mh = 'hs'
@@ -361,30 +408,31 @@ def ray_harmony_search(params):
     return harmony_search(params)
 
 def main():
-    pop_init = 'random'
-    max_iter = 100000
-    pop_size = 100
-    mem_size = 10
-    mem_consider = 0.9
-    par_min = 0.1
+    pop_init = 'best'
+    max_iter = 1000
+    pop_size = 1000
+    mem_size = 30
+    mem_consider = 0.5
+    par_min = 0.5
     par_max = 0.5
-    bw_min = 0.1
-    bw_max = 0.7
-    sigma = 0.03
+    bw_min = 0.5
+    bw_max = 0.5
+    sigma = 1
     k = 10
-    lambda_ = 0.9
+    lambda_ = 0.5
     port_n = 1
     lower = 0.01
     upper = 1
     type = 'min'
     seed = 42
     tag = 'base'
+    local_search = 20
 
     parameters = [
         max_iter, pop_size, mem_size, mem_consider,
         par_min, par_max, bw_min, bw_max, sigma, k,
         lambda_, port_n, lower, upper, type, seed, tag, 
-        pop_init
+        pop_init, local_search
     ]
 
     harmony_search(parameters)

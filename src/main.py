@@ -34,17 +34,18 @@ from tqdm.auto import tqdm
 
 def benchmarks(tag, seed=None):
     pop_init = ['best']
-    max_iter = [1000]
-    pop_size = [100]
-    mem_size = [10]
+    max_iter = [100]
+    pop_size = [1000]
+    mem_size = [100]
     mem_consider = [0.9]
-    par_min = [0.1]
-    par_max = [0.5]
-    bw_min = [0.1]
-    bw_max = [0.7]
-    sigma = [0.03]
+    par_min = [0.5]
+    par_max = [0.9]
+    bw_min = [0.5]
+    bw_max = [0.9]
+    sigma = [5]
+    # k = [10]
+    # lambda_ = [0.5]
     k = list(range(2,11))
-    # lambda_ = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     lambda_ = (np.round(np.array(list(range(101))) * 0.01, 4)).tolist()
     port_n = [1]
     lower = [0.01]
@@ -52,12 +53,13 @@ def benchmarks(tag, seed=None):
     type = ['min']
     seed = [seed]
     tag_ = [tag]
+    local_search = [10]
 
     parameters = [
         max_iter, pop_size, mem_size, mem_consider,
         par_min, par_max, bw_min, bw_max, sigma, k,
         lambda_, port_n, lower, upper, type, seed, tag_,
-        pop_init
+        pop_init, local_search
     ]
 
     parameters = list(product(*parameters))
@@ -68,7 +70,7 @@ def benchmarks(tag, seed=None):
     logs = ray.get(futures)
 
 def main():
-    for i in tqdm(range(100)):
+    for i in tqdm(range(10)):
         benchmarks('problem_solving', None)
 
 if __name__ == "__main__":
