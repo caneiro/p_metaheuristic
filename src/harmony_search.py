@@ -118,12 +118,23 @@ def check_constraints(x, z, lower, upper, k):
     else:
         return False
 
+# def portfolio_risk(X, Z, cor_mx, r_std):
+#     risk = np.zeros(X.shape[0])
+#     for r in range(X.shape[0]):
+#         z1 = np.where(Z[r]==1)[0]
+#         i, j = list(zip(*list(combinations(z1, 2))))
+#         risk[r] = np.sum(cor_mx[i, j] * X[r, i] * X[r, j]) # * r_std[list(i)] * r_std[list(j)])
+#     return np.round(risk, 6)
+
 def portfolio_risk(X, Z, cor_mx, r_std):
     risk = np.zeros(X.shape[0])
     for r in range(X.shape[0]):
         z1 = np.where(Z[r]==1)[0]
-        i, j = list(zip(*list(combinations(z1, 2))))
-        risk[r] = np.sum(cor_mx[i, j] * X[r, i] * X[r, j]) # * r_std[list(i)] * r_std[list(j)])
+        risk_ij = []
+        for i, j in combinations(z1, 2):
+            risk_ij.append(cor_mx[i, j] * X[r, i] * X[r, j])
+        risk_ij = np.array(risk_ij)
+        risk[r] = np.sum(risk_ij) # * r_std[list(i)] * r_std[list(j)])
     return np.round(risk, 6)
 
 def portfolio_return(X, Z, r_mean):
@@ -410,7 +421,7 @@ def ray_harmony_search(params):
 def main():
     pop_init = 'best'
     max_iter = 1000
-    pop_size = 1000
+    pop_size = 100000
     mem_size = 30
     mem_consider = 0.5
     par_min = 0.5
@@ -418,12 +429,12 @@ def main():
     bw_min = 0.5
     bw_max = 0.5
     sigma = 1
-    k = 10
+    k = 2
     lambda_ = 0.5
     port_n = 1
     lower = 0.01
     upper = 1
-    type = 'min'
+    type = 'min'    
     seed = 42
     tag = 'base'
     local_search = 20

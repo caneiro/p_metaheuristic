@@ -34,15 +34,15 @@ from tqdm.auto import tqdm
 
 def benchmarks(tag, seed=None):
     pop_init = ['best']
-    max_iter = [100]
-    pop_size = [1000]
+    max_iter = [10000]
+    pop_size = [100000]
     mem_size = [100]
     mem_consider = [0.9]
     par_min = [0.5]
     par_max = [0.9]
     bw_min = [0.5]
     bw_max = [0.9]
-    sigma = [5]
+    sigma = [1, 3, 5]
     # k = [10]
     # lambda_ = [0.5]
     k = list(range(2,11))
