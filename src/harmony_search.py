@@ -321,6 +321,8 @@ def harmony_search(parameters):
                 X[h_worst] = x
                 Z[h_worst] = z
                 C[h_worst] = cost_actual
+                Risk[h_worst] = risk_actual
+                Return[h_worst] = return_actual
 
         else:
             improve = None
