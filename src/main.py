@@ -33,27 +33,27 @@ from tqdm.auto import tqdm
 
 
 def benchmarks(tag, seed=None):
-    pop_init = ['best']
-    max_iter = [100]
+    pop_init = ['random']
+    max_iter = [10000]
     pop_size = [1000]
     mem_size = [100]
-    mem_consider = [0.9]
-    par_min = [0.5]
+    mem_consider = [0.7]
+    par_min = [0.1]
     par_max = [0.9]
-    bw_min = [0.5]
+    bw_min = [0.1]
     bw_max = [0.9]
-    sigma = [5]
+    sigma = [300]
     # k = [10]
     # lambda_ = [0.5]
     k = list(range(2,11))
-    lambda_ = (np.round(np.array(list(range(101))) * 0.01, 4)).tolist()
+    lambda_ = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] # (np.round(np.array(list(range(101))) * 0.01, 4)).tolist()
     port_n = [1]
     lower = [0.01]
     upper = [1]
     type = ['min']
     seed = [seed]
     tag_ = [tag]
-    local_search = [10]
+    local_search = [30]
 
     parameters = [
         max_iter, pop_size, mem_size, mem_consider,

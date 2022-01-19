@@ -131,7 +131,7 @@ def portfolio_return(X, Z, r_mean):
     return p_return
 
 def cost_function(Risk, Return, lambda_):
-    return lambda_ * Risk - ((1-lambda_) * Return)
+    return (lambda_ * Risk) - ((1-lambda_) * Return)
 
 def harmony_search(parameters):
     """
@@ -244,7 +244,7 @@ def harmony_search(parameters):
         # Normaliza a solução para atender ao critério de restrição
         x = normalize(x, z, lower)
 
-        if local_search is not None:
+        if local_search is not None and bw < bw_min * 0.1:
             x_actual = x.copy()
             z_actual = z.copy()
 
@@ -261,8 +261,7 @@ def harmony_search(parameters):
                     if np.random.uniform() <= par:
                         op = np.random.choice([0,1])
                         if op == 0:
-                            local_move = np.random.normal(scale=sigma) * bw
-                            x_actual[a] = x_actual[a] + local_move
+                            x_actual[a] = x_actual[a] + move
                         elif op == 1:
                             h_best = np.argmin(C) if type=='min' else np.argmax(C)
                             h_worst = np.argmax(C) if type=='min' else np.argmin(C)
