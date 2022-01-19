@@ -207,7 +207,6 @@ def harmony_search(parameters):
         # Calculo do BW - Bandwith dinâmico
         c = np.log(bw_min / bw_max) / max_iter
         bw = bw_max * np.exp(c * i)
-        move = np.random.normal(scale=sigma) * bw
 
         # Calculo do PAR - Pitch Adjustment Rate dinâmico
         par = par_min + (((par_max - par_min) / max_iter) * i)
@@ -217,6 +216,9 @@ def harmony_search(parameters):
         m = np.zeros(n_assets)
 
         for a in range(n_assets):
+    
+            # calculo do move
+            move = np.random.normal(scale=sigma) * bw
 
             # Verifica se usa a memória de harmonia ou deixa aleatoria
             if np.random.uniform() <= mem_consider:
@@ -346,6 +348,9 @@ def harmony_search(parameters):
             l_X.append(X[h_best])
             l_Z.append(Z[h_best])
             l_Q.append(Z[h_best].sum())
+            if DEBUG:
+                print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | move {:.3f} | ' \
+                    .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, move))
         else:
             if log_count >= max_iter / 100:
                 log_count = 0
@@ -361,8 +366,8 @@ def harmony_search(parameters):
                 l_Q.append(Z[h_best].sum())
 
                 if DEBUG:
-                    print('{:0>3d} | Q {:.0f} | par {:.3f} | bw {:.3f} | move {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f}' \
-                        .format(i, Z[h_best].sum(), par, bw, move, cost_best, risk_best, return_best))
+                    print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | move {:.3f} | ' \
+                        .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, move))
 
         log_count += 1
 
@@ -402,7 +407,7 @@ def harmony_search(parameters):
     Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
     log.to_csv(Path(LOG_PATH, filename), index=False, quotechar='"')
 
-    return log
+    return (cost_best, risk_best, return_best)
 
 @ray.remote
 def ray_harmony_search(params):
@@ -411,14 +416,15 @@ def ray_harmony_search(params):
 def main():
     pop_init = 'best'
     max_iter = 1000
-    pop_size = 1000
-    mem_size = 30
-    mem_consider = 0.5
-    par_min = 0.5
-    par_max = 0.5
-    bw_min = 0.5
-    bw_max = 0.5
-    sigma = 1
+    pop_size = 100
+    mem_size = 10
+    local_search = 10
+    mem_consider = 0.7
+    par_min = 0.1
+    par_max = 0.7
+    bw_min = 1
+    bw_max = 10
+    sigma = 0.1
     k = 10
     lambda_ = 0.5
     port_n = 1
@@ -427,7 +433,6 @@ def main():
     type = 'min'
     seed = 42
     tag = 'base'
-    local_search = 20
 
     parameters = [
         max_iter, pop_size, mem_size, mem_consider,
