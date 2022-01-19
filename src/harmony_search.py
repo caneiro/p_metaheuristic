@@ -13,6 +13,7 @@
 # restricoes de cardinalidade -> kmin e kmax ativos no portfolio
 # restricoes de quantidade (fracao) de cada asset ->  dmin e dmax
 
+from turtle import shape
 import numpy as np
 import pandas as pd
 import time
@@ -94,56 +95,67 @@ def normalize(x, z, lower):
     x = (x * fator) + e
     return x
 
-def generate_population(pop_size, k, n_assets, lower, upper):
+def port_risk(X, Z, cor_mx):
+    Z1 = np.where(Z==1)[0]
+    Risk = np.zeros(X.shape[0])
+    for r in range(Z1.shape[0]):
+        risk_ij = []
+        for i, j in combinations(Z1[r], 2):
+            risk_ij.append(cor_mx[i, j] * X[r, i] * X[r, j])
+        risk_ij = np.array(risk_ij)
+        Risk[r] = risk_ij.sum()
+    return Risk
+    
+def port_return(x, z, r_mean):
+    z1 = np.where(z==1)[0]
+    return np.dot(x[z1], r_mean[z1])
+
+def generate_population(pop_size, k, n_assets, lower, upper, min_return, r_mean):
     pop_count = 0
     X = []
     Z = []
+    R = []
     while pop_count < pop_size:
         x = np.random.uniform(low=lower, high=upper, size=n_assets)
         z = np.zeros(n_assets)
         z[np.random.choice(n_assets, k, False)] = 1
         x[np.where(z==0)] = 0
         x = normalize(x, z, lower)
-        if check_constraints(x, z, lower, upper, k):
+        p_return = port_return(x, z, r_mean)
+        if check_constraints(x, z, lower, upper, k, min_return, p_return):
             X.append(x)
             Z.append(z)
+            R.append(p_return)
             pop_count = pop_count + 1
 
-    return np.array(X), np.array(Z)
+    return np.array(X), np.array(Z), np.array(R)
 
-def check_constraints(x, z, lower, upper, k):
+def check_cardinality(x, z, k):
     z1 = np.where(z==1)[0]
-    if round(x.sum(), 6)==1 and z.sum()==k and np.all(x[z1]>=lower) and np.all(x<=upper):
+    if len(z1)==k:
         return True
     else:
         return False
 
-# def portfolio_risk(X, Z, cor_mx, r_std):
-#     risk = np.zeros(X.shape[0])
-#     for r in range(X.shape[0]):
-#         z1 = np.where(Z[r]==1)[0]
-#         i, j = list(zip(*list(combinations(z1, 2))))
-#         risk[r] = np.sum(cor_mx[i, j] * X[r, i] * X[r, j]) # * r_std[list(i)] * r_std[list(j)])
-#     return np.round(risk, 6)
+def check_quantity(x, z, lower, upper):
+    z1 = np.where(z==1)[0]
+    if np.all(x[z1]>=lower) and np.all(x[z1]<=upper):
+        return True
+    else:
+        return False
 
-def portfolio_risk(X, Z, cor_mx, r_std):
-    risk = np.zeros(X.shape[0])
-    for r in range(X.shape[0]):
-        z1 = np.where(Z[r]==1)[0]
-        risk_ij = []
-        for i, j in combinations(z1, 2):
-            risk_ij.append(cor_mx[i, j] * X[r, i] * X[r, j])
-        risk_ij = np.array(risk_ij)
-        risk[r] = np.sum(risk_ij) # * r_std[list(i)] * r_std[list(j)])
-    return np.round(risk, 6)
+def check_min_return(p_return, min_return):
+    if p_return >= min_return:
+        return True
+    else:
+        return False
 
-def portfolio_return(X, Z, r_mean):
-    p_return = np.dot(X, r_mean)
-    return p_return
-
-def cost_function(Risk, Return, lambda_):
-    return lambda_ * Risk - ((1-lambda_) * Return)
-
+def check_constraints(x, z, lower, upper, k, min_return, p_return):
+    if check_cardinality(x, z, k) and check_quantity(x, z, lower, upper) and check_min_return(p_return, min_return):
+        return True
+    else:
+        return False
+        
 def harmony_search(parameters):
     """
     Argumentos:
@@ -163,7 +175,7 @@ def harmony_search(parameters):
     bw_max = parameters[7]
     sigma = parameters[8]
     k = parameters[9]
-    lambda_ = parameters[10]
+    min_return = parameters[10]
     port_n = parameters[11]
     lower = parameters[12]
     upper = parameters[13]
@@ -195,21 +207,18 @@ def harmony_search(parameters):
     move = 0
 
     # Step 2 - Inicialização da Memória de Harmonias
-    X, Z = generate_population(pop_size, k, n_assets, lower, upper)
-    Risk = portfolio_risk(X, Z, cor_mx, r_std)
-    Return = portfolio_return(X, Z, r_mean)
-    C = cost_function(Risk, Return, lambda_)
+    X, Z, Return = generate_population(pop_size, k, n_assets, lower, upper)
+    Cost = port_risk(X, Z, cor_mx)
 
     # Inicializa a Memória com melhores Harmonias
     if pop_init == 'random':
         idx = np.random.choice(range(pop_size), mem_size)
     elif pop_init == 'best':    
-        idx = np.argsort(C)[:mem_size]
+        idx = np.argsort(Cost)[:mem_size]
     X = X[idx]
     Z = Z[idx]
-    Risk = Risk[idx]
     Return = Return[idx]
-    C = C[idx]
+    Cost = Cost[idx]
 
     # Step 3 - Processo de Geração de Soluções
     log_count = 0
@@ -240,7 +249,7 @@ def harmony_search(parameters):
                 x[a] = np.random.uniform(lower, upper)
                 z[a] = 1
 
-        # Transformar a solução inviável em viável
+        # Transformar a solução inviável em viável com relação à cardinalidade
         while z.sum() != k:
             if z.sum() > k:
                 a = np.random.choice(np.where(z==1)[0])
@@ -255,72 +264,30 @@ def harmony_search(parameters):
         # Normaliza a solução para atender ao critério de restrição
         x = normalize(x, z, lower)
 
-        if local_search is not None:
-            x_actual = x.copy()
-            z_actual = z.copy()
+        # Verifica se vai aplicar o ajuste do Pitch para as variáveis oriundas da memória    
+        for a in np.where(m==1)[0]:
+            if np.random.uniform() <= par:
+                x[a] = x[a] + move
+                z[a] = 1
 
-            x_best = x_actual.copy()
-            z_best = z_actual.copy()
+        # Normaliza a solução para atender ao critério de restrição
+        x = normalize(x, z, lower)
 
-            for l in range(local_search):
+        # Calculo do retorno da solução atual
+        r = port_return(x, z, r_mean)
 
-                risk_best = portfolio_risk(x_best.reshape(1,-1), z_best.reshape(1,-1), cor_mx, r_std)
-                return_best = portfolio_return(x_best.reshape(1,-1), z_best.reshape(1,-1), r_mean)
-                cost_best = cost_function(risk_best, return_best, lambda_)
-
-                for a in np.where(z_actual==1)[0]:
-                    if np.random.uniform() <= par:
-                        op = np.random.choice([0,1])
-                        if op == 0:
-                            local_move = np.random.normal(scale=sigma) * bw
-                            x_actual[a] = x_actual[a] + local_move
-                        elif op == 1:
-                            h_best = np.argmin(C) if type=='min' else np.argmax(C)
-                            h_worst = np.argmax(C) if type=='min' else np.argmin(C)
-                            local_move = bw * (X[h_best, a] - X[h_worst, a])
-                            x_actual[a] = x_actual[a] + local_move
-                        if x_actual[a] < lower:
-                            x_actual[a] = lower
-
-                x_actual = normalize(x_actual, z_actual, lower)
-
-                risk_actual = portfolio_risk(x_actual.reshape(1,-1), z_actual.reshape(1,-1), cor_mx, r_std)
-                return_actual = portfolio_return(x_actual.reshape(1,-1), z_actual.reshape(1,-1), r_mean)
-                cost_actual = cost_function(risk_actual, return_actual, lambda_)                
-
-                if cost_actual[0] < cost_best[0]:
-                    # print(l, 'improve')
-                    x_best = x_actual.copy()                    
-                    z_best = z_actual.copy()
-
-            x = x_best.copy()
-            z = z_best.copy()
-
-        else:
-            # Aplica o ajuste do Pitch para as variáveis oriundas da memória    
-            for a in np.where(m==1)[0]:
-                if np.random.uniform() <= par:
-                    x[a] = x[a] + move
-                    z[a] = 1
-
-            # Normaliza a solução para atender ao critério de restrição
-            x = normalize(x, z, lower)
-
-        # print(bad_pop)
-        if check_constraints(x, z, lower, upper, k): ##### Melhorar!!! - testes repetidos
+        # Verifica novamente as restrições
+        if check_constraints(x, z, lower, upper, k, min_return, r):
             
-            # print(i, 'passou')
             # Step 4 - Verifica se a solução gerada é melhor que a pior 
             # existente na memória, e caso positivo realiza a substituição
 
             # Obtém pior solução
-            h_worst = np.argmax(C) if type=='min' else np.argmin(C)
-            cost_worst = C[h_worst]
+            h_worst = np.argmax(Cost) if type=='min' else np.argmin(Cost)
+            cost_worst = Cost[h_worst]
 
             # Calculo solução atual
-            risk_actual = portfolio_risk(x.reshape(1,-1), z.reshape(1,-1), cor_mx, r_std)
-            return_actual = portfolio_return(x.reshape(1,-1), z.reshape(1,-1), r_mean)
-            cost_actual = cost_function(risk_actual, return_actual, lambda_)
+            cost_actual = port_risk(x.reshape(1,-1), z.reshape(1,-1), cor_mx)
 
             # Verifica se a solução atual é melhor que a pior e realiza a substituição
             if type=='min':
@@ -331,16 +298,16 @@ def harmony_search(parameters):
             if improve:
                 X[h_worst] = x
                 Z[h_worst] = z
-                C[h_worst] = cost_actual
+                Cost[h_worst] = cost_actual
+                Return[h_worst] = r
 
         else:
             improve = None
             # print('Gen pop fail')
 
-        h_best = np.argmin(C) if type=='min' else np.argmax(C)
-        risk_best = Risk[h_best]
+        h_best = np.argmin(Cost) if type=='min' else np.argmax(Cost)
         return_best = Return[h_best]
-        cost_best = C[h_best]
+        cost_best = Cost[h_best]
             
 
         
@@ -430,7 +397,7 @@ def main():
     bw_max = 0.5
     sigma = 1
     k = 2
-    lambda_ = 0.5
+    min_return = 0.001
     port_n = 1
     lower = 0.01
     upper = 1
@@ -442,7 +409,7 @@ def main():
     parameters = [
         max_iter, pop_size, mem_size, mem_consider,
         par_min, par_max, bw_min, bw_max, sigma, k,
-        lambda_, port_n, lower, upper, type, seed, tag, 
+        min_return, port_n, lower, upper, type, seed, tag, 
         pop_init, local_search
     ]
 
