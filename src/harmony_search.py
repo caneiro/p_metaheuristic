@@ -349,8 +349,8 @@ def harmony_search(parameters):
             l_Z.append(Z[h_best])
             l_Q.append(Z[h_best].sum())
             if DEBUG:
-                print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | move {:.3f} | ' \
-                    .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, move))
+                print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | Z {}' \
+                    .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, Z[h_best].astype('int8')))
         else:
             if log_count >= max_iter / 100:
                 log_count = 0
@@ -366,8 +366,8 @@ def harmony_search(parameters):
                 l_Q.append(Z[h_best].sum())
 
                 if DEBUG:
-                    print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | move {:.3f} | ' \
-                        .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, move))
+                    print('{:0>6d} | Q {:.0f} | par {:.3f} | bw {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f} | Z {}' \
+                        .format(i, Z[h_best].sum(), par, bw, cost_best, risk_best, return_best, Z[h_best].astype('int8')))
 
         log_count += 1
 
@@ -418,7 +418,7 @@ def main():
     max_iter = 1000
     pop_size = 100
     mem_size = 10
-    local_search = 10
+    local_search = None
     mem_consider = 0.7
     par_min = 0.1
     par_max = 0.7
