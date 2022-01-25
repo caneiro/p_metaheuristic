@@ -94,15 +94,15 @@ def normalize(x, z, lower):
     return x
 
 def port_risk(X, Z, cor_mx):
-    Z1 = np.where(Z==1)[0]
-    Risk = np.zeros(X.shape[0])
-    for r in range(Z1.shape[0]):
+    risk = []
+    for r in range(X.shape[0]):
+        z1 = np.where(Z[r]==1)[0]
         risk_ij = []
-        for i, j in combinations(Z1[r], 2):
+        for i, j in combinations(z1, 2):
             risk_ij.append(cor_mx[i, j] * X[r, i] * X[r, j])
         risk_ij = np.array(risk_ij)
-        Risk[r] = risk_ij.sum()
-    return Risk
+        risk.append(risk_ij.sum())
+    return np.array(risk)
     
 def port_return(x, z, r_mean):
     z1 = np.where(z==1)[0]
@@ -195,7 +195,7 @@ def harmony_search(parameters):
     n_assets, r_mean, r_std, cor_mx = port
 
     # Step 2 - Inicialização da Memória de Harmonias
-    X, Z, Return = generate_population(mem_size, k, n_assets, lower, upper)
+    X, Z, Return = generate_population(mem_size, k, n_assets, lower, upper, min_return, r_mean)
     Cost = port_risk(X, Z, cor_mx)
 
     # Step 3 - Processo de Geração de Soluções
@@ -293,7 +293,9 @@ def harmony_search(parameters):
             l_X.append(X[h_best])
             l_Z.append(Z[h_best])
             l_Q.append(Z[h_best].sum())
-
+            if DEBUG:
+                print('{:0>3d} | Q {:.0f} | par {:.3f} | move {:.3f} | cost {:.3f} | return {:.3f}' \
+                    .format(i, Z[h_best].sum(), par, move, cost_best, return_best))
         else:
             if log_count >= max_iter / 100:
                 log_count = 0
@@ -307,8 +309,8 @@ def harmony_search(parameters):
                 l_Q.append(Z[h_best].sum())
 
                 if DEBUG:
-                    print('{:0>3d} | Q {:.0f} | par {:.3f} | bw {:.3f} | move {:.3f} | cost {:.3f} | risk {:.3f} | return {:.3f}' \
-                        .format(i, Z[h_best].sum(), par, bw, move, cost_best, risk_best, return_best))
+                    print('{:0>3d} | Q {:.0f} | par {:.3f} | move {:.3f} | cost {:.3f} | return {:.3f}' \
+                        .format(i, Z[h_best].sum(), par, move, cost_best, return_best))
 
         log_count += 1
 
@@ -316,31 +318,21 @@ def harmony_search(parameters):
     log = pd.DataFrame({
         'iter':l_iter,
         'cost':l_cost,
-        'risk':l_risk,
         'return':l_return,
         'par':l_par,
-        'bw':l_bw,
         'move':l_move,
         'X':l_X,
         'Z':l_Z,
         'Q':l_Q,
     })
-    log['pop_init'] = pop_init
     log['max_iter'] = max_iter
-    log['pop_size'] = pop_size
     log['mem_size'] = mem_size
     log['mem_consider'] = mem_consider
-    log['par_min'] = par_min
-    log['par_max'] = par_max
-    log['bw_min'] = bw_min
-    log['bw_max'] = bw_max
     log['sigma'] = sigma
-    log['lambda'] = lambda_
     log['port_n'] = port_n
     log['k'] = k
     log['seed'] = seed
     log['tag'] = tag
-    log['local_search'] = local_search
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     mh = 'hs'
@@ -357,16 +349,16 @@ def ray_harmony_search(params):
 def main():
 
     max_iter = 1000
-    mem_size = 30
-    mem_consider = 0.5
-    par = 0.5
+    mem_size = 100
+    mem_consider = 0.7
+    par = 0.7
     sigma = 1
-    k = 2
-    min_return = 0.001
+    k = 10
+    min_return = 0.003
     port_n = 1
     lower = 0.01
     upper = 1
-    type = 'min'    
+    type = 'min'
     seed = 42
     tag = 'base'
 
