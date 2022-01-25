@@ -33,44 +33,37 @@ from tqdm.auto import tqdm
 
 
 def benchmarks(tag, seed=None):
-    pop_init = ['best']
-    max_iter = [10000]
-    pop_size = [100000]
+
+    max_iter = [100, 1000, 10000, 100000]
     mem_size = [100]
-    mem_consider = [0.9]
-    par_min = [0.5]
-    par_max = [0.9]
-    bw_min = [0.5]
-    bw_max = [0.9]
-    sigma = [1, 3, 5]
-    # k = [10]
-    # lambda_ = [0.5]
-    k = list(range(2,11))
-    lambda_ = (np.round(np.array(list(range(101))) * 0.01, 4)).tolist()
+    mem_consider = [0.7]
+    par = [0.7]
+    sigma = [1]
+    k = [10]
+    # k = list(range(2,11))
+    min_return = [0.003]
     port_n = [1]
     lower = [0.01]
     upper = [1]
     type = ['min']
-    seed = [seed]
+    seed = np.random.choice(range(100), 10, replace=False).tolist()
     tag_ = [tag]
-    local_search = [10]
 
     parameters = [
-        max_iter, pop_size, mem_size, mem_consider,
-        par_min, par_max, bw_min, bw_max, sigma, k,
-        lambda_, port_n, lower, upper, type, seed, tag_,
-        pop_init, local_search
-    ]
+        max_iter, mem_size, mem_consider, par, 
+        sigma, k, min_return, port_n, lower, upper,
+        type, seed, tag_
+        ]
 
     parameters = list(product(*parameters))
     random.shuffle(parameters)
     print('Number of parameters combinations: {}'.format(len(parameters)))
-
+    # print(parameters)
     futures = [ray_harmony_search.remote(param) for param in parameters]
     logs = ray.get(futures)
 
 def main():
-    for i in tqdm(range(10)):
+    for i in tqdm(range(1)):
         benchmarks('problem_solving', None)
 
 if __name__ == "__main__":
