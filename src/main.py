@@ -34,7 +34,7 @@ from tqdm.auto import tqdm
 
 def benchmarks(tag, seed=None):
 
-    max_iter = [100, 1000, 10000, 100000]
+    max_iter = [100, 1000, 10000, 100000, 1000000, 10000000]
     mem_size = [100]
     mem_consider = [0.7]
     par = [0.7]
@@ -64,7 +64,7 @@ def benchmarks(tag, seed=None):
 
 def main():
     for i in tqdm(range(1)):
-        benchmarks('problem_solving', None)
+        benchmarks('tuning_iter', None)
 
 if __name__ == "__main__":
     main()
