@@ -32,8 +32,6 @@ DEBUG = False
 SEED = 42
 
 PATH = Path.cwd()
-# LOG_PATH = './log'
-# RAW_PATH = '../input/portfolio-optimisation-orlibrary-by-beasley'
 LOG_PATH = Path(PATH, "./data/log/")
 RAW_PATH = Path(PATH, "./data/raw/")
 
@@ -166,31 +164,24 @@ def harmony_search(parameters):
 
     """
     max_iter = parameters[0]
-    pop_size = parameters[1]
-    mem_size = parameters[2]
-    mem_consider = parameters[3]
-    par_min = parameters[4]
-    par_max = parameters[5]
-    bw_min = parameters[6]
-    bw_max = parameters[7]
-    sigma = parameters[8]
-    k = parameters[9]
-    min_return = parameters[10]
-    port_n = parameters[11]
-    lower = parameters[12]
-    upper = parameters[13]
-    type = parameters[14]
-    seed = parameters[15]
-    tag = parameters[16]
-    pop_init = parameters[17]
-    local_search = parameters[18]
+    mem_size = parameters[1]
+    mem_consider = parameters[2]
+    par = parameters[3]
+    sigma = parameters[4]
+    k = parameters[5]
+    min_return = parameters[6]
+    port_n = parameters[7]
+    lower = parameters[8]
+    upper = parameters[9]
+    type = parameters[10]
+    seed = parameters[11]
+    tag = parameters[12]
 
     l_iter = []
     l_cost = []
     l_risk = []
     l_return = []
     l_par = []
-    l_bw = []
     l_move = []
     l_X = []
     l_Z = []
@@ -202,35 +193,14 @@ def harmony_search(parameters):
     # demais parâmetros inicializados no cabeçalho da função
     port = load_port_files(port_n)
     n_assets, r_mean, r_std, cor_mx = port
-    par = par_min
-    bw = bw_min
-    move = 0
 
     # Step 2 - Inicialização da Memória de Harmonias
-    X, Z, Return = generate_population(pop_size, k, n_assets, lower, upper)
+    X, Z, Return = generate_population(mem_size, k, n_assets, lower, upper)
     Cost = port_risk(X, Z, cor_mx)
-
-    # Inicializa a Memória com melhores Harmonias
-    if pop_init == 'random':
-        idx = np.random.choice(range(pop_size), mem_size)
-    elif pop_init == 'best':    
-        idx = np.argsort(Cost)[:mem_size]
-    X = X[idx]
-    Z = Z[idx]
-    Return = Return[idx]
-    Cost = Cost[idx]
 
     # Step 3 - Processo de Geração de Soluções
     log_count = 0
     for i in range(max_iter):
-
-        # Calculo do BW - Bandwith dinâmico
-        c = np.log(bw_min / bw_max) / max_iter
-        bw = bw_max * np.exp(c * i)
-        move = np.random.normal(scale=sigma) * bw
-
-        # Calculo do PAR - Pitch Adjustment Rate dinâmico
-        par = par_min + (((par_max - par_min) / max_iter) * i)
         
         x = np.zeros(n_assets)
         z = np.zeros(n_assets)
@@ -238,12 +208,16 @@ def harmony_search(parameters):
 
         for a in range(n_assets):
 
+            # Calculo do move = distribuição normal de variância sigma
+            move = np.random.normal(loc=0, scale=sigma)
+
             # Verifica se usa a memória de harmonia ou deixa aleatoria
             if np.random.uniform() <= mem_consider:
                 rand_idx = np.random.randint(0, mem_size)
                 x[a] = X[rand_idx, a]
                 z[a] = Z[rand_idx, a]
                 m[a] = Z[rand_idx, a]
+
             # Se não, inicializa a variável aleatóriamente
             else:
                 x[a] = np.random.uniform(lower, upper)
@@ -308,30 +282,25 @@ def harmony_search(parameters):
         h_best = np.argmin(Cost) if type=='min' else np.argmax(Cost)
         return_best = Return[h_best]
         cost_best = Cost[h_best]
-            
-
-        
+             
         # Log
         if i == 1 or i == max_iter-1:
             l_iter.append(i)
             l_cost.append(cost_best)
             l_return.append(return_best)
-            l_risk.append(risk_best)
             l_par.append(par)
-            l_bw.append(bw)
             l_move.append(move)
             l_X.append(X[h_best])
             l_Z.append(Z[h_best])
             l_Q.append(Z[h_best].sum())
+
         else:
             if log_count >= max_iter / 100:
                 log_count = 0
                 l_iter.append(i)
                 l_cost.append(cost_best)
                 l_return.append(return_best)
-                l_risk.append(risk_best)
                 l_par.append(par)
-                l_bw.append(bw)
                 l_move.append(move)
                 l_X.append(X[h_best])
                 l_Z.append(Z[h_best])
@@ -386,15 +355,11 @@ def ray_harmony_search(params):
     return harmony_search(params)
 
 def main():
-    pop_init = 'best'
+
     max_iter = 1000
-    pop_size = 100000
     mem_size = 30
     mem_consider = 0.5
-    par_min = 0.5
-    par_max = 0.5
-    bw_min = 0.5
-    bw_max = 0.5
+    par = 0.5
     sigma = 1
     k = 2
     min_return = 0.001
@@ -404,53 +369,14 @@ def main():
     type = 'min'    
     seed = 42
     tag = 'base'
-    local_search = 20
 
     parameters = [
-        max_iter, pop_size, mem_size, mem_consider,
-        par_min, par_max, bw_min, bw_max, sigma, k,
-        min_return, port_n, lower, upper, type, seed, tag, 
-        pop_init, local_search
-    ]
+        max_iter, mem_size, mem_consider, par, 
+        sigma, k, min_return, port_n, lower, upper,
+        type, seed, tag
+        ]
 
     harmony_search(parameters)
-
-def benchmarks(tag, seed=None):
-
-    max_iter = [1000]
-    pop_size = [100]
-    mem_size = [10]
-    mem_consider = [0.9]
-    par_min = [0.1]
-    par_max = [0.5]
-    bw_min = [0.1]
-    bw_max = [0.7]
-    sigma = [0.03]
-    k = list(range(2,11))
-    lambda_ = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    port_n = [1]
-    lower = [0.01]
-    upper = [1]
-    type = ['min']
-    seed = [seed]
-    tag_ = [tag]
-
-    parameters = [
-        max_iter, pop_size, mem_size, mem_consider,
-        par_min, par_max, bw_min, bw_max, sigma, k,
-        lambda_, port_n, lower, upper, type, seed, tag_
-    ]
-
-    parameters = list(product(*parameters))
-    random.shuffle(parameters)
-    print('Number of parameters combinations: {}'.format(len(parameters)))
-
-#     ray.init(num_cpus=4)
-
-    futures = [ray_harmony_search.remote(param) for param in parameters]
-    logs = ray.get(futures)
-
-#     ray.shutdown()
 
 if __name__ == "__main__":
     DEBUG = True
