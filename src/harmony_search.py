@@ -143,8 +143,8 @@ def harmony_search(parameters):
 
     """
     max_iter = parameters[0]
-    pop_size = parameters[1]
     mem_size = parameters[2]
+    pop_size = mem_size
     mem_consider = parameters[3]
     par_min = parameters[4]
     par_max = parameters[5]
