@@ -128,7 +128,7 @@ def generate_population(pop_size, k, n_assets, lower, upper, min_return, r_mean)
             pop_count += 1
         else:
             fail_count += 1
-        if fail_count > pop_size * 10:
+        if fail_count > pop_size * 1000:
             pop_count = pop_size
 
 
@@ -205,106 +205,98 @@ def harmony_search(parameters):
     Cost = port_risk(X, Z, cor_mx)
 
     # Step 3 - Processo de Geração de Soluções
-    log_count = 0
-    for i in range(max_iter):
-        
-        x = np.zeros(n_assets)
-        z = np.zeros(n_assets)
-        m = np.zeros(n_assets)
 
-        for a in range(n_assets):
+    if X.shape[0] == 0:
+        print('No pop!!!')
+        return None
+    else:
 
-            # Calculo do move = distribuição normal de variância sigma
-            move = np.random.normal(loc=0, scale=sigma)
-
-            # Verifica se usa a memória de harmonia ou deixa aleatoria
-            if np.random.uniform() <= mem_consider:
-                rand_idx = np.random.randint(0, mem_size)
-                x[a] = X[rand_idx, a]
-                z[a] = Z[rand_idx, a]
-                m[a] = Z[rand_idx, a]
-
-            # Se não, inicializa a variável aleatóriamente
-            else:
-                x[a] = np.random.uniform(lower, upper)
-                z[a] = 1
-
-        # Transformar a solução inviável em viável com relação à cardinalidade
-        while z.sum() != k:
-            if z.sum() > k:
-                a = np.random.choice(np.where(z==1)[0])
-                x[a] = 0
-                z[a] = 0
-                m[a] = 0
-            else:
-                a = np.random.choice(np.where(z==0)[0])
-                x[a] = lower
-                z[a] = 1
-
-        # Normaliza a solução para atender ao critério de restrição
-        x = normalize(x, z, lower)
-
-        # Verifica se vai aplicar o ajuste do Pitch para as variáveis oriundas da memória    
-        for a in np.where(m==1)[0]:
-            if np.random.uniform() <= par:
-                x[a] = x[a] + move
-                z[a] = 1
-
-        # Normaliza a solução para atender ao critério de restrição
-        x = normalize(x, z, lower)
-
-        # Calculo do retorno da solução atual
-        r = port_return(x, z, r_mean)
-
-        # Verifica novamente as restrições
-        if check_constraints(x, z, lower, upper, k, min_return, r):
+        log_count = 0
+        for i in range(max_iter):
             
-            # Step 4 - Verifica se a solução gerada é melhor que a pior 
-            # existente na memória, e caso positivo realiza a substituição
+            x = np.zeros(n_assets)
+            z = np.zeros(n_assets)
+            m = np.zeros(n_assets)
 
-            # Obtém pior solução
-            h_worst = np.argmax(Cost) if type=='min' else np.argmin(Cost)
-            cost_worst = Cost[h_worst]
+            for a in range(n_assets):
 
-            # Calculo solução atual
-            cost_actual = port_risk(x.reshape(1,-1), z.reshape(1,-1), cor_mx)
+                # Calculo do move = distribuição normal de variância sigma
+                move = np.random.normal(loc=0, scale=sigma)
 
-            # Verifica se a solução atual é melhor que a pior e realiza a substituição
-            if type=='min':
-                improve = True if cost_actual < cost_worst else False
-            else:
-                improve = True if cost_actual > cost_worst else False
+                # Verifica se usa a memória de harmonia ou deixa aleatoria
+                if np.random.uniform() <= mem_consider:
+                    rand_idx = np.random.randint(0, X.shape[0])
+                    x[a] = X[rand_idx, a]
+                    z[a] = Z[rand_idx, a]
+                    m[a] = Z[rand_idx, a]
+
+                # Se não, inicializa a variável aleatóriamente
+                else:
+                    x[a] = np.random.uniform(lower, upper)
+                    z[a] = 1
+
+            # Transformar a solução inviável em viável com relação à cardinalidade
+            while z.sum() != k:
+                if z.sum() > k:
+                    a = np.random.choice(np.where(z==1)[0])
+                    x[a] = 0
+                    z[a] = 0
+                    m[a] = 0
+                else:
+                    a = np.random.choice(np.where(z==0)[0])
+                    x[a] = lower
+                    z[a] = 1
+
+            # Normaliza a solução para atender ao critério de restrição
+            x = normalize(x, z, lower)
+
+            # Verifica se vai aplicar o ajuste do Pitch para as variáveis oriundas da memória    
+            for a in np.where(m==1)[0]:
+                if np.random.uniform() <= par:
+                    x[a] = x[a] + move
+                    z[a] = 1
+
+            # Normaliza a solução para atender ao critério de restrição
+            x = normalize(x, z, lower)
+
+            # Calculo do retorno da solução atual
+            r = port_return(x, z, r_mean)
+
+            # Verifica novamente as restrições
+            if check_constraints(x, z, lower, upper, k, min_return, r):
                 
-            if improve:
-                X[h_worst] = x
-                Z[h_worst] = z
-                Cost[h_worst] = cost_actual
-                Return[h_worst] = r
+                # Step 4 - Verifica se a solução gerada é melhor que a pior 
+                # existente na memória, e caso positivo realiza a substituição
 
-        else:
-            improve = None
-            # print('Gen pop fail')
+                # Obtém pior solução
+                h_worst = np.argmax(Cost) if type=='min' else np.argmin(Cost)
+                cost_worst = Cost[h_worst]
 
-        h_best = np.argmin(Cost) if type=='min' else np.argmax(Cost)
-        return_best = Return[h_best]
-        cost_best = Cost[h_best]
-             
-        # Log
-        if i == 1 or i == max_iter-1:
-            l_iter.append(i)
-            l_cost.append(cost_best)
-            l_return.append(return_best)
-            l_par.append(par)
-            l_move.append(move)
-            l_X.append(X[h_best])
-            l_Z.append(Z[h_best])
-            l_Q.append(Z[h_best].sum())
-            if DEBUG:
-                print('{:0>3d} | Q {:.0f} | par {:.3f} | move {:.3f} | cost {:.3f} | return {:.3f}' \
-                    .format(i, Z[h_best].sum(), par, move, cost_best, return_best))
-        else:
-            if log_count >= max_iter / 100:
-                log_count = 0
+                # Calculo solução atual
+                cost_actual = port_risk(x.reshape(1,-1), z.reshape(1,-1), cor_mx)
+
+                # Verifica se a solução atual é melhor que a pior e realiza a substituição
+                if type=='min':
+                    improve = True if cost_actual < cost_worst else False
+                else:
+                    improve = True if cost_actual > cost_worst else False
+                    
+                if improve:
+                    X[h_worst] = x
+                    Z[h_worst] = z
+                    Cost[h_worst] = cost_actual
+                    Return[h_worst] = r
+
+            else:
+                improve = None
+                # print('Gen pop fail')
+
+            h_best = np.argmin(Cost) if type=='min' else np.argmax(Cost)
+            return_best = Return[h_best]
+            cost_best = Cost[h_best]
+                
+            # Log
+            if i == 1 or i == max_iter-1:
                 l_iter.append(i)
                 l_cost.append(cost_best)
                 l_return.append(return_best)
@@ -313,40 +305,54 @@ def harmony_search(parameters):
                 l_X.append(X[h_best])
                 l_Z.append(Z[h_best])
                 l_Q.append(Z[h_best].sum())
-
                 if DEBUG:
                     print('{:0>3d} | Q {:.0f} | par {:.3f} | move {:.3f} | cost {:.3f} | return {:.3f}' \
                         .format(i, Z[h_best].sum(), par, move, cost_best, return_best))
+            else:
+                if log_count >= max_iter / 100:
+                    log_count = 0
+                    l_iter.append(i)
+                    l_cost.append(cost_best)
+                    l_return.append(return_best)
+                    l_par.append(par)
+                    l_move.append(move)
+                    l_X.append(X[h_best])
+                    l_Z.append(Z[h_best])
+                    l_Q.append(Z[h_best].sum())
 
-        log_count += 1
+                    if DEBUG:
+                        print('{:0>3d} | Q {:.0f} | par {:.3f} | move {:.3f} | cost {:.3f} | return {:.3f}' \
+                            .format(i, Z[h_best].sum(), par, move, cost_best, return_best))
+
+            log_count += 1
 
 
-    log = pd.DataFrame({
-        'iter':l_iter,
-        'cost':l_cost,
-        'return':l_return,
-        'par':l_par,
-        'move':l_move,
-        'X':l_X,
-        'Z':l_Z,
-        'Q':l_Q,
-    })
-    log['max_iter'] = max_iter
-    log['mem_size'] = mem_size
-    log['mem_consider'] = mem_consider
-    log['sigma'] = sigma
-    log['port_n'] = port_n
-    log['k'] = k
-    log['seed'] = seed
-    log['tag'] = tag
+        log = pd.DataFrame({
+            'iter':l_iter,
+            'cost':l_cost,
+            'return':l_return,
+            'par':l_par,
+            'move':l_move,
+            'X':l_X,
+            'Z':l_Z,
+            'Q':l_Q,
+        })
+        log['max_iter'] = max_iter
+        log['mem_size'] = mem_size
+        log['mem_consider'] = mem_consider
+        log['sigma'] = sigma
+        log['port_n'] = port_n
+        log['k'] = k
+        log['seed'] = seed
+        log['tag'] = tag
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    mh = 'hs'
-    filename = 'log_' + mh + '_' + tag + '_' + timestamp + '.csv'
-    Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
-    log.to_csv(Path(LOG_PATH, filename), index=False, quotechar='"')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        mh = 'hs'
+        filename = 'log_' + mh + '_' + tag + '_' + timestamp + '.csv'
+        Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
+        log.to_csv(Path(LOG_PATH, filename), index=False, quotechar='"')
 
-    return log
+        return log
 
 @ray.remote
 def ray_harmony_search(params):
@@ -360,7 +366,7 @@ def main():
     par = 0.7
     sigma = 1
     k = 10
-    min_return = 0.003
+    min_return = 0.006
     port_n = 1
     lower = 0.01
     upper = 1

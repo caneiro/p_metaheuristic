@@ -64,7 +64,7 @@ def benchmarks(tag, seed=None):
 
 def main():
     for i in tqdm(range(10)):
-        benchmarks('tuning_sigma_par', None)
+        benchmarks('problem_solving', None)
 
 if __name__ == "__main__":
     main()
