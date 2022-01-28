@@ -34,14 +34,14 @@ from tqdm.auto import tqdm
 
 def benchmarks(tag, seed=None):
 
-    max_iter = [10000]
+    max_iter = [1000]
     mem_size = [30]
     mem_consider = [0.6]    
     par = [0.4]
     sigma = [10]
     # k = [10]
     k = list(range(2,11))
-    min_return = [0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035, 0.004, 0.0045, 0.005]
+    min_return = [0.003]
     port_n = [1]
     lower = [0.01]
     upper = [1]
@@ -63,8 +63,8 @@ def benchmarks(tag, seed=None):
     logs = ray.get(futures)
 
 def main():
-    for i in tqdm(range(1000)):
-        benchmarks('problem_solving', None)
+    for i in tqdm(range(10)):
+        benchmarks('tuning_sigma_par', None)
 
 if __name__ == "__main__":
     main()

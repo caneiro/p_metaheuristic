@@ -110,6 +110,7 @@ def port_return(x, z, r_mean):
 
 def generate_population(pop_size, k, n_assets, lower, upper, min_return, r_mean):
     pop_count = 0
+    fail_count = 0
     X = []
     Z = []
     R = []
@@ -124,7 +125,12 @@ def generate_population(pop_size, k, n_assets, lower, upper, min_return, r_mean)
             X.append(x)
             Z.append(z)
             R.append(p_return)
-            pop_count = pop_count + 1
+            pop_count += 1
+        else:
+            fail_count += 1
+        if fail_count > pop_size * 1000:
+        pop_count = pop_size
+
 
     return np.array(X), np.array(Z), np.array(R)
 
