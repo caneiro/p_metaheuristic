@@ -128,8 +128,8 @@ def generate_population(pop_size, k, n_assets, lower, upper, min_return, r_mean)
             pop_count += 1
         else:
             fail_count += 1
-        if fail_count > pop_size * 1000:
-        pop_count = pop_size
+        if fail_count > pop_size * 10:
+            pop_count = pop_size
 
 
     return np.array(X), np.array(Z), np.array(R)
